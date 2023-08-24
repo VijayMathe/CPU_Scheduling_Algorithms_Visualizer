@@ -14,7 +14,7 @@ document.getElementById('submitBtn').addEventListener('click', function () {
     }
 
     const timelineElement = document.getElementById('timeline');
-    timelineElement.innerHTML = ''; // Clear previous timeline
+    timelineElement.innerHTML = '';
 
     if (algorithm === 'fcfs') {
         fcfsSchedulerVisualize(processes);
@@ -25,7 +25,7 @@ document.getElementById('submitBtn').addEventListener('click', function () {
 
 function fcfsSchedulerVisualize(processes) {
     const timelineElement = document.getElementById('timeline');
-    const animationDuration = 500; // Duration of each animation step in milliseconds
+    const animationDuration = 500;
     
     let currentTime = 0;
 
@@ -57,7 +57,7 @@ function fcfsSchedulerVisualize(processes) {
 
 function sjfSchedulerVisualize(processes) {
     const timelineElement = document.getElementById('timeline');
-    const animationDuration = 500; // Duration of each animation step in milliseconds
+    const animationDuration = 500;
     
     const numProcesses = processes.length;
     const completed = new Array(numProcesses).fill(false);
