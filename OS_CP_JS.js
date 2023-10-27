@@ -13,6 +13,19 @@ document.getElementById('submitBtn').addEventListener('click', function () {
         processes.push(process);
     }
 
+    // Display process information in the table
+    const processTableBody = document.getElementById('processTableBody');
+    processTableBody.innerHTML = '';
+
+    processes.forEach((process) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>P${process.pid}</td><td>${process.arrival_time}</td><td>${process.burst_time}</td>`;
+        processTableBody.appendChild(row);
+    });
+
+    // The rest of your scheduling algorithm visualization code can go here
+    // ...
+
     const timelineElement = document.getElementById('timeline');
     timelineElement.innerHTML = '';
 
@@ -30,7 +43,49 @@ document.getElementById('submitBtn').addEventListener('click', function () {
         const quantum = parseInt(prompt('Enter time quantum for Round Robin:'));
         roundRobinSchedulerVisualize(processes, quantum);
     }
+
+    // For demonstration purposes, you can clear the input fields after submitting
+    // document.getElementById('algorithm').value = '';
+    // document.getElementById('numProcesses').value = '';
 });
+
+
+
+
+
+// document.getElementById('submitBtn').addEventListener('click', function () {
+//     const algorithm = document.getElementById('algorithm').value;
+//     const numProcesses = parseInt(document.getElementById('numProcesses').value);
+
+//     const processes = [];
+
+//     for (let i = 0; i < numProcesses; i++) {
+//         const process = {
+//             pid: i + 1,
+//             arrival_time: parseInt(prompt(`Enter arrival time for Process ${i + 1}:`)),
+//             burst_time: parseInt(prompt(`Enter burst time for Process ${i + 1}:`))
+//         };
+//         processes.push(process);
+//     }
+
+//     const timelineElement = document.getElementById('timeline');
+//     timelineElement.innerHTML = '';
+
+//     if (algorithm === 'fcfs') {
+//         fcfsSchedulerVisualize(processes);
+//     } else if (algorithm === 'sjf') {
+//         sjfSchedulerVisualize(processes);
+//     } else if (algorithm === 'lrtf') {
+//         lrtfSchedulerVisualize(processes);
+//     } else if (algorithm === 'srtf') {
+//         srtfSchedulerVisualize(processes);
+//     } else if (algorithm === 'priority') {
+//         prioritySchedulerVisualize(processes);
+//     } else if (algorithm === 'roundrobin') {
+//         const quantum = parseInt(prompt('Enter time quantum for Round Robin:'));
+//         roundRobinSchedulerVisualize(processes, quantum);
+//     }
+// });
 
 function fcfsSchedulerVisualize(processes) {
     const timelineElement = document.getElementById('timeline');
@@ -126,128 +181,76 @@ function sjfSchedulerVisualize(processes) {
 
 function prioritySchedulerVisualize(processes) {
     const timelineElement = document.getElementById('timeline');
-    timelineElement.innerHTML = '';
     const animationDuration = 500;
 
+    processes.sort((a, b) => a.priority - b.priority);
+
     let currentTime = 0;
-    const numProcesses = processes.length;
 
-    while (!processes.every(process => process.completed)) {
-        let highestPriorityProcess = null;
-
-        for (let i = 0; i < numProcesses; i++) {
-            if (processes[i].arrival_time <= currentTime && !processes[i].completed) {
-                if (
-                    highestPriorityProcess === null ||
-                    processes[i].priority < highestPriorityProcess.priority
-                ) {
-                    highestPriorityProcess = processes[i];
-                }
-            }
-        }
-
-        if (highestPriorityProcess === null) {
-            // No ready processes, find the next arrival time
-            const nextArrival = Math.min(
-                ...processes.filter(p => !p.completed).map(p => p.arrival_time)
-            );
-
+    for (const process of processes) {
+        if (currentTime < process.arrival_time) {
             const idleElement = document.createElement('div');
-            idleElement.textContent = `Idle ${currentTime} - ${nextArrival}`;
+            idleElement.textContent = `Idle ${currentTime} - ${process.arrival_time}`;
             idleElement.className = 'event idle';
             timelineElement.appendChild(idleElement);
-            currentTime = nextArrival;
-        } else {
-            // Schedule the highest priority process
-            const process = highestPriorityProcess;
-
-            if (currentTime < process.arrival_time) {
-                const idleElement = document.createElement('div');
-                idleElement.textContent = `Idle ${currentTime} - ${process.arrival_time}`;
-                idleElement.className = 'event idle';
-                timelineElement.appendChild(idleElement);
-                currentTime = process.arrival_time;
-            }
-
-            const processElement = document.createElement('div');
-            processElement.textContent = `P${process.pid} (${currentTime} - ${
-                currentTime + process.burst_time
-            })`;
-            processElement.className = 'event';
-            timelineElement.appendChild(processElement);
-
-            setTimeout(() => {
-                processElement.classList.add('active');
-            }, currentTime * animationDuration);
-
-            setTimeout(() => {
-                processElement.classList.remove('active');
-                process.completed = true;
-            }, (currentTime + process.burst_time) * animationDuration);
-
-            currentTime += process.burst_time;
+            currentTime = process.arrival_time;
         }
+
+        const processElement = document.createElement('div');
+        processElement.textContent = `P${process.pid} (${currentTime} - ${currentTime + process.burst_time})`;
+        processElement.className = 'event';
+        timelineElement.appendChild(processElement);
+
+        currentTime += process.burst_time;
     }
 }
+
 
 
 function lrtfSchedulerVisualize(processes) {
     const timelineElement = document.getElementById('timeline');
     const animationDuration = 500;
-    
+
+    processes.sort((a, b) => b.burst_time - a.burst_time);
+
     let currentTime = 0;
-    const numProcesses = processes.length;
-    const completed = new Array(numProcesses).fill(false);
 
-    while (!completed.every(process => process)) {
-        let longestRemainingTime = -1;
-        let longestIndex = -1;
-
-        for (let i = 0; i < numProcesses; i++) {
-            if (!completed[i] && processes[i].arrival_time <= currentTime) {
-                const remainingTime = processes[i].burst_time;
-                if (remainingTime > longestRemainingTime) {
-                    longestRemainingTime = remainingTime;
-                    longestIndex = i;
-                }
-            }
+    while (processes.length > 0) {
+        const availableProcesses = processes.filter((process) => process.arrival_time <= currentTime);
+        if (availableProcesses.length === 0) {
+            currentTime++;
+            continue;
         }
 
-        if (longestIndex === -1) {
+        availableProcesses.sort((a, b) => b.burst_time - a.burst_time);
+        const selectedProcess = availableProcesses[0];
+
+        if (currentTime < selectedProcess.arrival_time) {
             const idleElement = document.createElement('div');
-            idleElement.textContent = `Idle ${currentTime} - `;
+            idleElement.textContent = `Idle ${currentTime} - ${selectedProcess.arrival_time}`;
             idleElement.className = 'event idle';
             timelineElement.appendChild(idleElement);
-            currentTime++;
-        } else {
-            const process = processes[longestIndex];
-            completed[longestIndex] = true;
-
-            if (currentTime < process.arrival_time) {
-                const idleElement = document.createElement('div');
-                idleElement.textContent = `Idle ${currentTime} - ${process.arrival_time}`;
-                idleElement.className = 'event idle';
-                timelineElement.appendChild(idleElement);
-                currentTime = process.arrival_time;
-            }
-
-            const processElement = document.createElement('div');
-            processElement.textContent = `P${process.pid} (${currentTime} - ${currentTime + process.burst_time})`;
-            processElement.className = 'event';
-            timelineElement.appendChild(processElement);
-
-            setTimeout(() => {
-                processElement.classList.add('active');
-            }, currentTime * animationDuration);
-
-            setTimeout(() => {
-                processElement.classList.remove('active');
-            }, (currentTime + process.burst_time) * animationDuration);
-
-            currentTime += process.burst_time;
+            currentTime = selectedProcess.arrival_time;
         }
+
+        const processElement = document.createElement('div');
+        processElement.textContent = `P${selectedProcess.pid} (${currentTime} - ${currentTime + 1})`;
+        processElement.className = 'event';
+        timelineElement.appendChild(processElement);
+
+        selectedProcess.burst_time--;
+
+        if (selectedProcess.burst_time === 0) {
+            const index = processes.indexOf(selectedProcess);
+            if (index > -1) {
+                processes.splice(index, 1);
+            }
+        }
+
+        currentTime++;
     }
 }
+
 
 
 function srtfSchedulerVisualize(processes) {
@@ -255,56 +258,43 @@ function srtfSchedulerVisualize(processes) {
     const animationDuration = 500;
 
     let currentTime = 0;
-    const numProcesses = processes.length;
-    const remainingTime = new Array(numProcesses);
 
-    for (let i = 0; i < numProcesses; i++) {
-        remainingTime[i] = processes[i].burst_time;
-    }
+    while (processes.length > 0) {
+        const availableProcesses = processes.filter((process) => process.arrival_time <= currentTime);
+        if (availableProcesses.length === 0) {
+            currentTime++;
+            continue;
+        }
 
-    let completedProcesses = 0;
+        availableProcesses.sort((a, b) => a.burst_time - b.burst_time);
+        const selectedProcess = availableProcesses[0];
 
-    while (completedProcesses < numProcesses) {
-        let shortestRemainingTime = Infinity;
-        let shortestIndex = -1;
+        if (currentTime < selectedProcess.arrival_time) {
+            const idleElement = document.createElement('div');
+            idleElement.textContent = `Idle ${currentTime} - ${selectedProcess.arrival_time}`;
+            idleElement.className = 'event idle';
+            timelineElement.appendChild(idleElement);
+            currentTime = selectedProcess.arrival_time;
+        }
 
-        for (let i = 0; i < numProcesses; i++) {
-            if (processes[i].arrival_time <= currentTime && remainingTime[i] < shortestRemainingTime && remainingTime[i] > 0) {
-                shortestRemainingTime = remainingTime[i];
-                shortestIndex = i;
+        const processElement = document.createElement('div');
+        processElement.textContent = `P${selectedProcess.pid} (${currentTime} - ${currentTime + 1})`;
+        processElement.className = 'event';
+        timelineElement.appendChild(processElement);
+
+        selectedProcess.burst_time--;
+
+        if (selectedProcess.burst_time === 0) {
+            const index = processes.indexOf(selectedProcess);
+            if (index > -1) {
+                processes.splice(index, 1);
             }
         }
 
-        if (shortestIndex === -1) {
-            const idleElement = document.createElement('div');
-            idleElement.textContent = `Idle ${currentTime} - `;
-            idleElement.className = 'event idle';
-            timelineElement.appendChild(idleElement);
-            currentTime++;
-        } else {
-            const process = processes[shortestIndex];
-            remainingTime[shortestIndex]--;
-
-            const processElement = document.createElement('div');
-            processElement.textContent = `P${process.pid} (${currentTime} - ${currentTime + 1})`;
-            processElement.className = 'event';
-            timelineElement.appendChild(processElement);
-
-            setTimeout(() => {
-                processElement.classList.add('active');
-            }, currentTime * animationDuration);
-
-            setTimeout(() => {
-                processElement.classList.remove('active');
-                if (remainingTime[shortestIndex] === 0) {
-                    completedProcesses++;
-                }
-            }, (currentTime + 1) * animationDuration);
-
-            currentTime++;
-        }
+        currentTime++;
     }
 }
+
 
 
 function roundRobinSchedulerVisualize(processes, quantum) {
@@ -312,43 +302,33 @@ function roundRobinSchedulerVisualize(processes, quantum) {
     const animationDuration = 500;
 
     let currentTime = 0;
-    let completedProcesses = 0;
-    const numProcesses = processes.length;
-    const remainingTime = new Array(numProcesses).fill(0);
 
-    while (completedProcesses < numProcesses) {
-        for (let i = 0; i < numProcesses; i++) {
-            if (remainingTime[i] > 0) {
-                const timeSlice = Math.min(remainingTime[i], quantum);
-                const process = processes[i];
+    while (processes.length > 0) {
+        for (const process of processes) {
+            if (process.arrival_time <= currentTime) {
+                if (process.burst_time > quantum) {
+                    const processElement = document.createElement('div');
+                    processElement.textContent = `P${process.pid} (${currentTime} - ${currentTime + quantum})`;
+                    processElement.className = 'event';
+                    timelineElement.appendChild(processElement);
 
-                if (currentTime < process.arrival_time) {
-                    const idleElement = document.createElement('div');
-                    idleElement.textContent = `Idle ${currentTime} - ${process.arrival_time}`;
-                    idleElement.className = 'event idle';
-                    timelineElement.appendChild(idleElement);
-                    currentTime = process.arrival_time;
+                    process.burst_time -= quantum;
+                    currentTime += quantum;
+                } else {
+                    const processElement = document.createElement('div');
+                    processElement.textContent = `P${process.pid} (${currentTime} - ${currentTime + process.burst_time})`;
+                    processElement.className = 'event';
+                    timelineElement.appendChild(processElement);
+
+                    const index = processes.indexOf(process);
+                    if (index > -1) {
+                        processes.splice(index, 1);
+                    }
+
+                    currentTime += process.burst_time;
                 }
-
-                const processElement = document.createElement('div');
-                processElement.textContent = `P${process.pid} (${currentTime} - ${currentTime + timeSlice})`;
-                processElement.className = 'event';
-                timelineElement.appendChild(processElement);
-
-                setTimeout(() => {
-                    processElement.classList.add('active');
-                }, currentTime * animationDuration);
-
-                setTimeout(() => {
-                    processElement.classList.remove('active');
-                }, (currentTime + timeSlice) * animationDuration);
-
-                remainingTime[i] -= timeSlice;
-                currentTime += timeSlice;
-
-                if (remainingTime[i] === 0) {
-                    completedProcesses++;
-                }
+            } else {
+                currentTime++;
             }
         }
     }
